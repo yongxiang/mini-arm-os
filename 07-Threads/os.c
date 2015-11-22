@@ -8,7 +8,7 @@
  * set when that data is transferred to the TDR
  */
 #define USART_FLAG_TXE	((uint16_t) 0x0080)
-
+#define USART_FLAG_RXNE ((uint16_t) 0x0020)
 void usart_init(void)
 {
 	*(RCC_APB2ENR) |= (uint32_t) (0x00000001 | 0x00000004);
@@ -36,34 +36,42 @@ void print_str(const char *str)
 	}
 }
 
-static void delay(volatile int count)
+char get_char()
 {
-	count *= 50000;
-	while (count--);
-}
-
-static void busy_loop(void *str)
-{
-	while (1) {
-		print_str(str);
-		print_str(": Running...\n");
-		delay(1000);
+	while(1) {
+		if ((*USART2_SR) & USART_FLAG_RXNE) 
+			return *(USART2_DR) & 0xff;
 	}
 }
 
-void test1(void *userdata)
+void command(char *cmd)
 {
-	busy_loop(userdata);
+
 }
 
-void test2(void *userdata)
+void shell(void *data)
 {
-	busy_loop(userdata);
-}
-
-void test3(void *userdata)
-{
-	busy_loop(userdata);
+	char buffer[256];
+	while(1)
+	{
+		int i;
+		for (i=0;i<256;i++)
+		{
+			buffer[i]=get_char();	
+			print_str(buffer+i);	
+			/* enter command */
+			if(buffer[i]==13)		
+			{
+				buffer[i+1] = '\0';
+				print_str("\n");
+				command(buffer);
+				
+				for(;i>0;i--)
+					buffer[i]='\0';
+				break;
+			}
+		}	
+	}
 }
 
 /* 72MHz */
@@ -74,18 +82,11 @@ void test3(void *userdata)
 
 int main(void)
 {
-	const char *str1 = "Task1", *str2 = "Task2", *str3 = "Task3";
 
 	usart_init();
-
-	if (thread_create(test1, (void *) str1) == -1)
-		print_str("Thread 1 creation failed\r\n");
-
-	if (thread_create(test2, (void *) str2) == -1)
-		print_str("Thread 2 creation failed\r\n");
-
-	if (thread_create(test3, (void *) str3) == -1)
-		print_str("Thread 3 creation failed\r\n");
+	const char *data="shell thread";
+	if ( thread_create( shell, (void *) data) == -1 )
+		print_str(" shell create failed \r\n ");
 
 	/* SysTick configuration */
 	*SYSTICK_LOAD = (CPU_CLOCK_HZ / TICK_RATE_HZ) - 1UL;
