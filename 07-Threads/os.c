@@ -44,25 +44,115 @@ char get_char()
 	}
 }
 
+int fib(int number)
+{
+	if(number==0) return 0;
+	int result;
+	asm volatile("push {r3, r4, r5, r6}");
+	asm (	"mov r4, %[num]"::[num] "r" (number));
+	asm (
+		"mov r6,#0\n"
+		"mov r5,#1\n"
+	".Loop:\n"
+		"add r3,r5,r6\n"
+		"mov r6,r5\n"
+		"mov r5,r3\n"
+
+		"subs r4,r4,#1\n"
+		"bge .Loop"	
+	);
+	asm ("mov %[fibresult], r3":[fibresult]"=r"(result));
+	asm volatile("pop {r3, r4, r5, r6 }	");
+
+	return result;    
+}
+
+int atoi(char *str)
+{ 
+	int val = 0;
+	while(*str)
+	{    
+		val = val * 10 + *str - '0' ;
+		str++ ;
+	}
+	return val;
+}
+void itoa(int num,char *s)
+{
+	char temp[10];
+	int i = 0; 
+	int j = 0;
+	while(num>0)
+	{       
+		temp[i++] = num%10 + '0';
+		num = num/10;
+	}
+	for(;i>0;i--)
+		s[j++]=temp[i-1];
+	s[j] = '\0';
+}
+char *strtok(char *str, const char *delim)
+{
+	static char *last_str;
+	if(str==NULL)
+		str=last_str;
+	if(!str) return NULL;
+
+	char *head=str;
+
+	while(*str)
+	{     
+		if((*str)==(*delim))
+		{
+			*str='\0';
+			last_str=str+1;	
+			return head;
+		}
+		str++;
+	}
+	return head;
+}
+int strcmp(const char *s1, const char *s2)
+{
+	while(*s1 && *s2)
+	{
+		if(*s1 != *s2) return 0;
+		s1++; s2++;
+	}
+	if(*s1=='\0' && *s2=='\0') return 1;
+	else return 0;
+}
+
 void command(char *cmd)
 {
-
+	char *command = strtok(cmd," "); 
+	if ( strcmp(command,"fib") )
+	{    
+		int num = atoi(strtok(NULL," "));
+        	int ans = fib(num);
+      		char result[10]; 
+        	itoa(ans,result);
+        	print_str("fib answer: ");
+        	print_str(result);
+        	print_str("\n");
+	}
 }
+
 
 void shell(void *data)
 {
-	char buffer[256];
+	char buffer[10];
 	while(1)
 	{
 		int i;
-		for (i=0;i<256;i++)
+		for (i=0;i<10;i++)
 		{
 			buffer[i]=get_char();	
 			print_str(buffer+i);	
 			/* enter command */
 			if(buffer[i]==13)		
 			{
-				buffer[i+1] = '\0';
+				buffer[i] = '\0';  
 				print_str("\n");
 				command(buffer);
 				
