@@ -127,6 +127,14 @@ int strcmp(const char *s1, const char *s2)
 	else return 0;
 }
 
+void ls()
+{
+        int dir;
+        dir = fs_opendir("/romfs/");
+        (void) dir;
+	print_str("\n");
+}
+
 void command(char *cmd)
 {
 	char *command = strtok(cmd," "); 
@@ -139,6 +147,10 @@ void command(char *cmd)
         	print_str("fib answer: ");
         	print_str(result);
         	print_str("\n");
+	}
+	if ( strcmp(command,"ls") )
+	{
+		ls();
 	}
 }
 
@@ -183,10 +195,6 @@ int main(void)
 	register_romfs("romfs",&_sromfs);
 
 	const char *data="shell thread";
-
-	int dir;
-	dir = fs_opendir("/romfs/");
-	(void) dir;
 
 	if ( thread_create( shell, (void *) data) == -1 )
 		print_str(" shell create failed \r\n ");
