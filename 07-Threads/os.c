@@ -2,7 +2,11 @@
 #include <stdint.h>
 #include "reg.h"
 #include "threads.h"
+#include "filesystem.h"
+#include "romfs.h"
 
+extern const unsigned char _sromfs;
+extern const unsigned char _eromfs;
 /* USART TXE Flag
  * This flag is cleared when data is written to USARTx_DR and
  * set when that data is transferred to the TDR
@@ -173,8 +177,17 @@ void shell(void *data)
 int main(void)
 {
 
+
 	usart_init();
+	fs_init();
+	register_romfs("romfs",&_sromfs);
+
 	const char *data="shell thread";
+
+	int dir;
+	dir = fs_opendir("/romfs/");
+	(void) dir;
+
 	if ( thread_create( shell, (void *) data) == -1 )
 		print_str(" shell create failed \r\n ");
 
